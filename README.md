@@ -35,13 +35,13 @@ git clone https://github.com/CairoLee/RPi-WiFi-Fallback.git
 cd RPi-WiFi-Fallback
 
 # 运行安装脚本
-sudo ./dist/setup.sh install
+sudo ./setup.sh install
 ```
 
 ### 卸载
 
 ```bash
-sudo ./dist/setup.sh uninstall
+sudo ./setup.sh uninstall
 ```
 
 ## 工作原理
