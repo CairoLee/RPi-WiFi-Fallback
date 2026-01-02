@@ -57,8 +57,8 @@ EOF
         PIPX_BIN_DIR=/usr/local/bin pipx install uv || { echo "Failed to install uv."; exit 1; }
     fi
 
-    # 创建 Web 应用目录和脚本
-    mkdir -p /opt/wifi-config
+    # 创建 Web 应用目录和日志目录
+    mkdir -p /opt/wifi-config/logs
     echo "Creating /opt/wifi-config/app.py..."
     cat > /opt/wifi-config/app.py << 'PYEOF'
 # @TEMPLATE: app.py

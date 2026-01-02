@@ -256,7 +256,7 @@ def schedule_wifi_connect(ssid, password):
     script_content = f'''#!/bin/bash
 # 使用时间戳命名日志，保留历史记录
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-LOG="/tmp/wifi-connect-$TIMESTAMP.log"
+LOG="/opt/wifi-config/logs/wifi-connect-$TIMESTAMP.log"
 echo "=== WiFi 连接脚本开始 ===" > $LOG
 date >> $LOG
 
