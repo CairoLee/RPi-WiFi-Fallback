@@ -1,0 +1,12 @@
+[Unit]
+Description=WiFi Config Web App
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/wifi-config/app.py
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,6 @@
+[Unit]
+Description=WiFi Fallback Service
+
+[Service]
+ExecStart=/usr/local/bin/wifi-fallback.sh
+
