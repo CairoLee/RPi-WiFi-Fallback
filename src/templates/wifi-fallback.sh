@@ -29,7 +29,12 @@ fi
 
 # 检查 AP 是否已经在运行
 if nmcli con show --active | grep -q '{{AP_CONNECTION_NAME}}'; then
-    log "AP 已在运行，跳过"
+    log "AP 已在运行"
+    # 确保配置服务也在运行
+    if ! systemctl is-active --quiet wifi-config.service; then
+        log "启动配置服务..."
+        systemctl start wifi-config.service
+    fi
     exit 0
 fi
 
