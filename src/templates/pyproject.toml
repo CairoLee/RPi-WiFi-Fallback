@@ -1,0 +1,9 @@
+[project]
+name = "rpi-wifi-fallback-web"
+version = "1.0.0"
+description = "Web interface for RPi WiFi Fallback"
+requires-python = ">=3.11"
+dependencies = [
+    "flask",
+]
+

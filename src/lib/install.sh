@@ -14,9 +14,9 @@ install() {
     # 更新软件包列表
     apt update -y || { echo "Failed to update packages."; exit 1; }
 
-    # 如果依赖项不存在则安装（使用 nftables，无需 iptables）
+    # 如果依赖项不存在则安装
     # 注意：dnsmasq 不需要单独安装，NetworkManager 在 shared 模式下内置了 dnsmasq 功能
-    for pkg in python3-flask nftables; do
+    for pkg in nftables pipx; do
         if ! package_installed "$pkg"; then
             echo "Installing $pkg..."
             apt install -y "$pkg" || { echo "Failed to install $pkg."; exit 1; }
@@ -51,12 +51,29 @@ install() {
 EOF
     chmod +x /usr/local/bin/wifi-fallback.sh || { echo "Failed to make fallback script executable."; exit 1; }
 
+    # 安装 uv 到系统路径（如果不存在）
+    if ! command -v uv &> /dev/null; then
+        echo "Installing uv..."
+        PIPX_BIN_DIR=/usr/local/bin pipx install uv || { echo "Failed to install uv."; exit 1; }
+    fi
+
     # 创建 Web 应用目录和脚本
     mkdir -p /opt/wifi-config
     echo "Creating /opt/wifi-config/app.py..."
     cat > /opt/wifi-config/app.py << 'PYEOF'
 # @TEMPLATE: app.py
 PYEOF
+
+    # 创建 pyproject.toml
+    echo "Creating /opt/wifi-config/pyproject.toml..."
+    cat > /opt/wifi-config/pyproject.toml << 'TOMLEOF'
+# @TEMPLATE: pyproject.toml
+TOMLEOF
+
+    # 创建虚拟环境并安装依赖
+    echo "Creating Python virtual environment and installing dependencies..."
+    cd /opt/wifi-config
+    uv sync
 
     # 提取 AP IP 地址（去掉 CIDR 后缀）
     AP_IP_ADDR=${AP_IP%/*}
@@ -92,6 +109,25 @@ EOF
     systemctl enable wifi-fallback.timer || { echo "Failed to enable timer."; exit 1; }
     systemctl start wifi-fallback.timer || { echo "Failed to start timer."; exit 1; }
 
-    echo "Installation complete. WiFi fallback timer is now active and will check connectivity every 30 seconds."
+    # 验证 Web 服务能否正常启动
+    echo "Verifying web service..."
+    systemctl start wifi-config.service
+    verification_ok=false
+    for i in $(seq 1 10); do
+        if curl -s --connect-timeout 1 http://127.0.0.1/ > /dev/null 2>&1; then
+            echo "Web service verification: OK (${i}s)"
+            verification_ok=true
+            break
+        fi
+        sleep 1
+    done
+    if [ "$verification_ok" = false ]; then
+        echo "Warning: Web service verification failed. Check /opt/wifi-config/app.py"
+    fi
+    systemctl stop wifi-config.service
+
+    echo ""
+    echo "Installation complete."
+    echo "WiFi fallback timer is now active and will check connectivity every 30 seconds."
 }
 
