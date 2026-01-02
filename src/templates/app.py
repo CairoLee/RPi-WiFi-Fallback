@@ -3,6 +3,9 @@ import subprocess
 
 app = Flask(__name__)
 
+# 配置常量（安装时由 sed 替换）
+AP_CONNECTION_NAME = '{{AP_CONNECTION_NAME}}'
+
 FORM_HTML = '''
 <!doctype html>
 <html>
@@ -251,9 +254,17 @@ def schedule_wifi_connect(ssid, password):
     # 创建临时脚本文件
     # 注意：如果 SSID 已有连接配置，需要更新密码而不是创建新连接
     script_content = f'''#!/bin/bash
-LOG="/tmp/wifi-connect-debug.log"
+# 使用时间戳命名日志，保留历史记录
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+LOG="/tmp/wifi-connect-$TIMESTAMP.log"
 echo "=== WiFi 连接脚本开始 ===" > $LOG
 date >> $LOG
+
+SSID="{ssid}"
+PASSWORD="{password}"
+TARGET_AP="{AP_CONNECTION_NAME}"
+
+echo "目标 SSID: $SSID" >> $LOG
 
 # 等待页面响应发送完成
 echo "等待 6 秒..." >> $LOG
@@ -261,14 +272,24 @@ sleep 6
 
 # 关闭 AP 热点
 echo "关闭 AP..." >> $LOG
-nmcli con down '{{AP_CONNECTION_NAME}}' 2>/dev/null
-sleep 2
+nmcli con down "$TARGET_AP" 2>> $LOG
 
-SSID="{ssid}"
-PASSWORD="{password}"
+# 等待 WiFi 接口释放
+echo "等待接口释放..." >> $LOG
+sleep 3
 
-# 检查是否存在同名 SSID 的连接
-echo "检查现有连接..." >> $LOG
+# 获取 WiFi 接口
+WIFI_IF=$(nmcli -t -f DEVICE,TYPE device | grep ':wifi' | cut -d: -f1 | head -n1)
+echo "WiFi 接口: $WIFI_IF" >> $LOG
+
+# 记录当前连接状态
+echo "关闭 AP 后的连接状态:" >> $LOG
+nmcli con show --active >> $LOG
+echo "当前路由:" >> $LOG
+ip route >> $LOG
+
+# 检查是否存在同名 SSID 的连接配置
+echo "检查现有连接配置..." >> $LOG
 EXISTING_CON=$(nmcli -t -f NAME,TYPE con show | grep ":802-11-wireless$" | cut -d: -f1 | while read name; do
     CON_SSID=$(nmcli -g 802-11-wireless.ssid con show "$name" 2>/dev/null)
     if [ "$CON_SSID" = "$SSID" ]; then
@@ -278,26 +299,61 @@ EXISTING_CON=$(nmcli -t -f NAME,TYPE con show | grep ":802-11-wireless$" | cut -
 done)
 
 if [ -n "$EXISTING_CON" ]; then
-    echo "找到现有连接: $EXISTING_CON，更新密码..." >> $LOG
-    # 更新现有连接的密码
+    echo "找到现有连接: $EXISTING_CON，更新密码并重新连接..." >> $LOG
+    # 先断开（如果已连接）
+    nmcli con down "$EXISTING_CON" 2>> $LOG
+    # 更新密码
     nmcli con modify "$EXISTING_CON" wifi-sec.psk "$PASSWORD" 2>> $LOG
     # 激活连接
     echo "激活连接..." >> $LOG
-    nmcli con up "$EXISTING_CON" 2>> $LOG
+    CONNECT_RESULT=$(nmcli con up "$EXISTING_CON" 2>&1)
+    echo "连接结果: $CONNECT_RESULT" >> $LOG
 else
     echo "未找到现有连接，创建新连接..." >> $LOG
-    # 创建新连接
-    nmcli device wifi connect "$SSID" password "$PASSWORD" 2>> $LOG
+    CONNECT_RESULT=$(nmcli device wifi connect "$SSID" password "$PASSWORD" 2>&1)
+    echo "连接结果: $CONNECT_RESULT" >> $LOG
 fi
 
-# 检查连接状态
-sleep 3
-echo "检查连接状态..." >> $LOG
-nmcli con show --active >> $LOG
+# 等待连接完成（最多 15 秒）
+# 不仅检测默认网关，还要确认连接的是目标 SSID
+echo "等待连接完成..." >> $LOG
+CONNECTED=false
+for i in $(seq 1 15); do
+    # 检查是否连接到目标 SSID
+    CURRENT_SSID=$(nmcli -t -f active,ssid dev wifi | grep '^yes:' | cut -d: -f2)
+    echo "第 ${{i}} 秒：当前 SSID=$CURRENT_SSID" >> $LOG
+    
+    if [ "$CURRENT_SSID" = "$SSID" ] && ip route | grep -q '^default'; then
+        echo "第 ${{i}} 秒：已连接到目标 SSID 且检测到默认网关" >> $LOG
+        CONNECTED=true
+        break
+    fi
+    sleep 1
+done
 
-# 停止配置服务
-echo "停止配置服务..." >> $LOG
-systemctl stop wifi-config.service
+echo "最终连接状态:" >> $LOG
+nmcli con show --active >> $LOG
+echo "最终路由:" >> $LOG
+ip route >> $LOG
+
+# 根据连接结果决定后续操作
+if [ "$CONNECTED" = true ]; then
+    echo "连接成功，停止配置服务..." >> $LOG
+    systemctl stop wifi-config.service
+else
+    echo "连接失败，重新启动 AP 和配置服务..." >> $LOG
+    nmcli con up "$TARGET_AP" 2>> $LOG
+    
+    # 重新设置 nftables 强制门户规则
+    NFT_TABLE="captive_portal"
+    nft delete table ip $NFT_TABLE 2>/dev/null
+    nft add table ip $NFT_TABLE
+    nft add chain ip $NFT_TABLE prerouting '{{ type nat hook prerouting priority -100 ; }}'
+    nft add rule ip $NFT_TABLE prerouting iifname "$WIFI_IF" tcp dport 80 redirect to :80
+    echo "nftables 规则已重新设置 (接口: $WIFI_IF)" >> $LOG
+    
+    systemctl start wifi-config.service
+fi
 
 echo "=== 脚本完成 ===" >> $LOG
 date >> $LOG
