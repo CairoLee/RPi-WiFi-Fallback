@@ -202,31 +202,44 @@ SUCCESS_HTML = '''
 '''
 
 def get_last_wifi_ssid():
-    """获取最近配置的 WiFi SSID（排除 AP 热点）
+    """获取最近使用的 WiFi SSID（排除 AP 热点，按最后连接时间排序）
     注意：密码以加密形式存储，无法获取原始密码，因此只返回 SSID
     """
     try:
-        # 获取所有连接
+        # 获取所有 WiFi 连接及其最后使用时间戳
         result = subprocess.run(
-            ['nmcli', '-t', '-f', 'NAME,TYPE', 'con', 'show'],
+            ['nmcli', '-t', '-f', 'NAME,TYPE,TIMESTAMP', 'con', 'show'],
             capture_output=True, text=True
         )
+        
+        wifi_connections = []
         for line in result.stdout.strip().split('\n'):
             if not line:
                 continue
-            if ':802-11-wireless' in line:
-                conn_name = line.split(':')[0]
-                # 排除 AP 热点连接
-                if conn_name == '{{AP_CONNECTION_NAME}}':
+            parts = line.split(':')
+            if len(parts) >= 3 and parts[1] == '802-11-wireless':
+                conn_name = parts[0]
+                # 排除 AP 热点连接（支持新旧名称）
+                if conn_name in ('{{AP_CONNECTION_NAME}}', 'MyHotspot'):
                     continue
-                # 读取 SSID
-                ssid_result = subprocess.run(
-                    ['nmcli', '-s', '-g', '802-11-wireless.ssid', 'con', 'show', conn_name],
-                    capture_output=True, text=True
-                )
-                ssid = ssid_result.stdout.strip()
-                if ssid:
-                    return ssid
+                try:
+                    timestamp = int(parts[2]) if parts[2] else 0
+                except ValueError:
+                    timestamp = 0
+                wifi_connections.append((conn_name, timestamp))
+        
+        # 按时间戳降序排序（最近使用的在前）
+        wifi_connections.sort(key=lambda x: x[1], reverse=True)
+        
+        # 获取最近使用的连接的 SSID
+        for conn_name, _ in wifi_connections:
+            ssid_result = subprocess.run(
+                ['nmcli', '-s', '-g', '802-11-wireless.ssid', 'con', 'show', conn_name],
+                capture_output=True, text=True
+            )
+            ssid = ssid_result.stdout.strip()
+            if ssid:
+                return ssid
     except Exception:
         pass
     return ''

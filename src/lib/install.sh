@@ -63,6 +63,8 @@ EOF
     cat > /opt/wifi-config/app.py << 'PYEOF'
 # @TEMPLATE: app.py
 PYEOF
+    # 替换 app.py 中的模板变量
+    sed -i "s/{{AP_CONNECTION_NAME}}/$AP_CONNECTION_NAME/g" /opt/wifi-config/app.py
 
     # 创建 pyproject.toml
     echo "Creating /opt/wifi-config/pyproject.toml..."
