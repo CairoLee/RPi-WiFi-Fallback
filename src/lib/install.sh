@@ -11,23 +11,33 @@ install() {
     # 检测 WiFi 接口
     detect_wifi_interface
 
-    # 更新软件包列表
-    apt update -y || { echo "Failed to update packages."; exit 1; }
-
-    # 如果依赖项不存在则安装
+    # 检查是否需要安装任何依赖包
     # 注意：dnsmasq 不需要单独安装，NetworkManager 在 shared 模式下内置了 dnsmasq 功能
+    NEED_APT_UPDATE=false
+    for pkg in nftables pipx network-manager; do
+        if ! package_installed "$pkg"; then
+            NEED_APT_UPDATE=true
+            break
+        fi
+    done
+
+    # 只有在需要安装包时才执行 apt update
+    if [ "$NEED_APT_UPDATE" = true ]; then
+        echo "Updating package list..."
+        apt update -y || { echo "Failed to update packages."; exit 1; }
+    fi
+
+    # 安装缺失的依赖包
     for pkg in nftables pipx; do
         if ! package_installed "$pkg"; then
             echo "Installing $pkg..."
             apt install -y "$pkg" || { echo "Failed to install $pkg."; exit 1; }
-        else
-            echo "$pkg is already installed."
         fi
     done
 
-    # 检查 NetworkManager 是否已安装并处于活动状态
+    # 检查 NetworkManager 是否已安装
     if ! package_installed network-manager; then
-        echo "NetworkManager not found. Installing..."
+        echo "Installing NetworkManager..."
         apt install -y network-manager || { echo "Failed to install NetworkManager."; exit 1; }
     fi
     if ! systemctl is-active --quiet NetworkManager; then
