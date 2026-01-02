@@ -217,7 +217,7 @@ def get_last_wifi_ssid():
             if ':802-11-wireless' in line:
                 conn_name = line.split(':')[0]
                 # 排除 AP 热点连接
-                if conn_name == 'MyHotspot':
+                if conn_name == '{{AP_CONNECTION_NAME}}':
                     continue
                 # 读取 SSID
                 ssid_result = subprocess.run(
@@ -248,7 +248,7 @@ sleep 6
 
 # 关闭 AP 热点
 echo "关闭 AP..." >> $LOG
-nmcli con down MyHotspot 2>/dev/null
+nmcli con down '{{AP_CONNECTION_NAME}}' 2>/dev/null
 sleep 2
 
 SSID="{ssid}"
