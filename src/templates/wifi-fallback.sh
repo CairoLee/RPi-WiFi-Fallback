@@ -27,6 +27,12 @@ if ip route | grep -q '^default'; then
     exit 0
 fi
 
+# 检查 AP 是否已经在运行
+if nmcli con show --active | grep -q '{{AP_CONNECTION_NAME}}'; then
+    log "AP 已在运行，跳过"
+    exit 0
+fi
+
 log "未检测到默认网关，启动 AP 模式"
 
 # 未连接到外部网络，启动 AP
