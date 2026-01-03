@@ -701,6 +701,10 @@ requires-python = ">=3.11"
 dependencies = [
     "flask",
 ]
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
 TOMLEOF
 
     # 创建虚拟环境并安装依赖
