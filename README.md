@@ -4,7 +4,7 @@
 
 ## 功能特性
 
-- **自动检测**：每 30 秒检查 WiFi 连接状态
+- **自动检测**：每 15 秒检查 WiFi 连接状态
 - **AP 热点回退**：连接失败时自动启动 WPA2 加密的 AP 热点
 - **强制门户**：连接热点后自动弹出配置页面（支持 iOS/Android/Windows）
 - **Web 配置界面**：移动端友好的 WiFi 配置页面
@@ -48,7 +48,7 @@ sudo ./setup.sh uninstall
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   systemd 定时器 (每 30 秒)                   │
+│                   systemd 定时器 (每 15 秒)                   │
 └─────────────────────────────┬───────────────────────────────┘
                               │
                               ▼
@@ -130,7 +130,7 @@ vim src/templates/app.py
 | 文件 | 位置 | 说明 |
 |------|------|------|
 | `wifi-fallback.sh` | `/usr/local/bin/` | WiFi 检测脚本 |
-| `wifi-fallback.timer` | `/etc/systemd/system/` | 定时触发（每 30 秒） |
+| `wifi-fallback.timer` | `/etc/systemd/system/` | 定时触发（每 15 秒） |
 | `wifi-fallback.service` | `/etc/systemd/system/` | 回退服务单元 |
 | `wifi-config.service` | `/etc/systemd/system/` | Web 配置服务 |
 | `app.py` | `/opt/wifi-config/` | Flask Web 应用 |

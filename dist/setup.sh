@@ -708,7 +708,7 @@ Description=WiFi Fallback Timer
 
 [Timer]
 OnBootSec=30s
-OnUnitActiveSec=30s
+OnUnitActiveSec=15s
 
 [Install]
 WantedBy=timers.target

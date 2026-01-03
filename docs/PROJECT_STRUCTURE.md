@@ -87,7 +87,7 @@ src/templates/* ┘（嵌入到 heredoc 中）
 |------|----------|------|
 | `wifi-fallback.sh` | `/usr/local/bin/` | WiFi 检测与 AP 切换逻辑 |
 | `app.py` | `/opt/wifi-config/` | Flask Web 应用（WiFi 配置页面） |
-| `wifi-fallback.timer` | `/etc/systemd/system/` | 定时触发 WiFi 检测（每分钟） |
+| `wifi-fallback.timer` | `/etc/systemd/system/` | 定时触发 WiFi 检测（每 15 秒） |
 | `wifi-fallback.service` | `/etc/systemd/system/` | WiFi 回退服务单元 |
 | `wifi-config.service` | `/etc/systemd/system/` | Web 配置服务单元 |
 | `captive-portal.conf` | `/etc/NetworkManager/dnsmasq-shared.d/` | DNS 劫持配置（强制门户） |
