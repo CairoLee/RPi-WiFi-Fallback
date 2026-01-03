@@ -6,6 +6,8 @@ After=network.target
 ExecStart=/opt/wifi-config/.venv/bin/python /opt/wifi-config/app.py
 Restart=always
 User=root
+# 只杀死主进程，不影响通过 nohup 启动的 wifi-connect.sh 子进程
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
