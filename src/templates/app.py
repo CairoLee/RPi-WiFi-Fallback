@@ -1,7 +1,24 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, redirect, make_response
 import subprocess
 
 app = Flask(__name__)
+
+# Captive Portal Detection 端点列表
+# 这些是各操作系统用于检测 captive portal 的 URL
+CAPTIVE_PORTAL_PATHS = {
+    # Apple iOS/macOS
+    'hotspot-detect.html',
+    'library/test/success.html',
+    # Android
+    'generate_204',
+    'gen_204',
+    'connectivitycheck.gstatic.com',
+    # Windows
+    'ncsi.txt',
+    'connecttest.txt',
+    # Firefox
+    'success.txt',
+}
 
 # 配置常量（安装时由 sed 替换）
 AP_CONNECTION_NAME = '{{AP_CONNECTION_NAME}}'
@@ -391,9 +408,24 @@ rm -f "$0"
         close_fds=True
     )
 
+def is_captive_portal_check(path):
+    """检查请求是否为操作系统的 captive portal detection"""
+    path_lower = path.lower()
+    return any(cp_path in path_lower for cp_path in CAPTIVE_PORTAL_PATHS)
+
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def home(path):
+    # 对 captive portal detection 请求返回 302 重定向
+    # 这比直接返回 HTML 更可靠地触发设备弹出门户窗口
+    if is_captive_portal_check(path):
+        # 使用请求的 host 动态构建重定向 URL，避免硬编码 IP
+        redirect_url = f'http://{request.host}/'
+        response = redirect(redirect_url, code=302)
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        return response
+    
     ssid = get_last_wifi_ssid()
     
     if request.method == 'POST':
@@ -404,9 +436,13 @@ def home(path):
         schedule_wifi_connect(new_ssid, new_password)
         
         # 返回成功页面（带倒计时）
-        return render_template_string(SUCCESS_HTML, ssid=new_ssid)
+        response = make_response(render_template_string(SUCCESS_HTML, ssid=new_ssid))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        return response
     
-    return render_template_string(FORM_HTML, ssid=ssid, password='', error='')
+    response = make_response(render_template_string(FORM_HTML, ssid=ssid, password='', error=''))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return response
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)

@@ -120,10 +120,37 @@ fi
 # 检查 AP 是否已经在运行
 if nmcli con show --active | grep -q '$AP_CONNECTION_NAME'; then
     log "AP 已在运行"
-    # 确保配置服务也在运行
-    if ! systemctl is-active --quiet wifi-config.service; then
+    
+    # 确保 nftables 规则存在（可能被其他进程清除）
+    if ! nft list table ip \$NFT_TABLE > /dev/null 2>&1; then
+        log "nftables 规则丢失，重新添加..."
+        nft add table ip \$NFT_TABLE
+        nft add chain ip \$NFT_TABLE prerouting { type nat hook prerouting priority -100 \; }
+        nft add rule ip \$NFT_TABLE prerouting iifname "$AP_INTERFACE" tcp dport 80 redirect to :80
+    fi
+    
+    # 检查配置服务状态
+    FLASK_STATUS=\$(systemctl is-active wifi-config.service)
+    log "Flask 服务状态: \$FLASK_STATUS"
+    
+    if [ "\$FLASK_STATUS" != "active" ]; then
         log "启动配置服务..."
         systemctl start wifi-config.service
+        sleep 2
+    fi
+    
+    # 每次都验证 Flask 是否真正可访问
+    if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+        log "Flask 可访问: 是"
+    else
+        log "Flask 可访问: 否! 尝试重启..."
+        systemctl restart wifi-config.service
+        sleep 2
+        if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+            log "重启后 Flask 可访问: 是"
+        else
+            log "重启后 Flask 可访问: 否!"
+        fi
     fi
     exit 0
 fi
@@ -152,12 +179,28 @@ systemctl start wifi-config.service
 FLASK_STATUS=\$(systemctl is-active wifi-config.service)
 log "wifi-config.service 状态: \$FLASK_STATUS"
 
-# 验证服务是否真正启动
-sleep 1
-if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
-    log "Flask 服务验证: 正常响应"
-else
-    log "Flask 服务验证: 无响应!"
+# 验证服务是否真正启动（最多等待 5 秒）
+log "等待 Flask 服务就绪..."
+FLASK_READY=false
+for i in 1 2 3 4 5; do
+    sleep 1
+    if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+        log "Flask 服务验证: 第 \${i} 秒响应正常"
+        FLASK_READY=true
+        break
+    fi
+    log "Flask 服务验证: 第 \${i} 秒无响应"
+done
+
+if [ "\$FLASK_READY" = false ]; then
+    log "Flask 服务 5 秒内未就绪，尝试重启..."
+    systemctl restart wifi-config.service
+    sleep 2
+    if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+        log "重启后 Flask 服务: 正常响应"
+    else
+        log "重启后 Flask 服务: 仍无响应!"
+    fi
 fi
 
 log "脚本执行完毕"
@@ -174,10 +217,27 @@ EOF
     mkdir -p /opt/wifi-config/logs
     echo "Creating /opt/wifi-config/app.py..."
     cat > /opt/wifi-config/app.py << 'PYEOF'
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, redirect, make_response
 import subprocess
 
 app = Flask(__name__)
+
+# Captive Portal Detection 端点列表
+# 这些是各操作系统用于检测 captive portal 的 URL
+CAPTIVE_PORTAL_PATHS = {
+    # Apple iOS/macOS
+    'hotspot-detect.html',
+    'library/test/success.html',
+    # Android
+    'generate_204',
+    'gen_204',
+    'connectivitycheck.gstatic.com',
+    # Windows
+    'ncsi.txt',
+    'connecttest.txt',
+    # Firefox
+    'success.txt',
+}
 
 # 配置常量（安装时由 sed 替换）
 AP_CONNECTION_NAME = '{{AP_CONNECTION_NAME}}'
@@ -567,9 +627,24 @@ rm -f "$0"
         close_fds=True
     )
 
+def is_captive_portal_check(path):
+    """检查请求是否为操作系统的 captive portal detection"""
+    path_lower = path.lower()
+    return any(cp_path in path_lower for cp_path in CAPTIVE_PORTAL_PATHS)
+
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def home(path):
+    # 对 captive portal detection 请求返回 302 重定向
+    # 这比直接返回 HTML 更可靠地触发设备弹出门户窗口
+    if is_captive_portal_check(path):
+        # 使用请求的 host 动态构建重定向 URL，避免硬编码 IP
+        redirect_url = f'http://{request.host}/'
+        response = redirect(redirect_url, code=302)
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        return response
+    
     ssid = get_last_wifi_ssid()
     
     if request.method == 'POST':
@@ -580,9 +655,13 @@ def home(path):
         schedule_wifi_connect(new_ssid, new_password)
         
         # 返回成功页面（带倒计时）
-        return render_template_string(SUCCESS_HTML, ssid=new_ssid)
+        response = make_response(render_template_string(SUCCESS_HTML, ssid=new_ssid))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        return response
     
-    return render_template_string(FORM_HTML, ssid=ssid, password='', error='')
+    response = make_response(render_template_string(FORM_HTML, ssid=ssid, password='', error=''))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return response
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)

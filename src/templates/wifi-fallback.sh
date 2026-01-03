@@ -30,10 +30,37 @@ fi
 # 检查 AP 是否已经在运行
 if nmcli con show --active | grep -q '{{AP_CONNECTION_NAME}}'; then
     log "AP 已在运行"
-    # 确保配置服务也在运行
-    if ! systemctl is-active --quiet wifi-config.service; then
+    
+    # 确保 nftables 规则存在（可能被其他进程清除）
+    if ! nft list table ip \$NFT_TABLE > /dev/null 2>&1; then
+        log "nftables 规则丢失，重新添加..."
+        nft add table ip \$NFT_TABLE
+        nft add chain ip \$NFT_TABLE prerouting { type nat hook prerouting priority -100 \; }
+        nft add rule ip \$NFT_TABLE prerouting iifname "{{AP_INTERFACE}}" tcp dport 80 redirect to :80
+    fi
+    
+    # 检查配置服务状态
+    FLASK_STATUS=\$(systemctl is-active wifi-config.service)
+    log "Flask 服务状态: \$FLASK_STATUS"
+    
+    if [ "\$FLASK_STATUS" != "active" ]; then
         log "启动配置服务..."
         systemctl start wifi-config.service
+        sleep 2
+    fi
+    
+    # 每次都验证 Flask 是否真正可访问
+    if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+        log "Flask 可访问: 是"
+    else
+        log "Flask 可访问: 否! 尝试重启..."
+        systemctl restart wifi-config.service
+        sleep 2
+        if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+            log "重启后 Flask 可访问: 是"
+        else
+            log "重启后 Flask 可访问: 否!"
+        fi
     fi
     exit 0
 fi
@@ -62,12 +89,28 @@ systemctl start wifi-config.service
 FLASK_STATUS=\$(systemctl is-active wifi-config.service)
 log "wifi-config.service 状态: \$FLASK_STATUS"
 
-# 验证服务是否真正启动
-sleep 1
-if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
-    log "Flask 服务验证: 正常响应"
-else
-    log "Flask 服务验证: 无响应!"
+# 验证服务是否真正启动（最多等待 5 秒）
+log "等待 Flask 服务就绪..."
+FLASK_READY=false
+for i in 1 2 3 4 5; do
+    sleep 1
+    if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+        log "Flask 服务验证: 第 \${i} 秒响应正常"
+        FLASK_READY=true
+        break
+    fi
+    log "Flask 服务验证: 第 \${i} 秒无响应"
+done
+
+if [ "\$FLASK_READY" = false ]; then
+    log "Flask 服务 5 秒内未就绪，尝试重启..."
+    systemctl restart wifi-config.service
+    sleep 2
+    if curl -s --connect-timeout 2 http://127.0.0.1/ > /dev/null 2>&1; then
+        log "重启后 Flask 服务: 正常响应"
+    else
+        log "重启后 Flask 服务: 仍无响应!"
+    fi
 fi
 
 log "脚本执行完毕"
