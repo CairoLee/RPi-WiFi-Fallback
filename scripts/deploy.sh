@@ -35,8 +35,8 @@ fi
 # 远程服务器地址（用户名@主机名）
 REMOTE_HOST="${DEPLOY_HOST:-ludashi@LDS-AINAS-PRINTER-01.local}"
 
-# 远程目标目录
-REMOTE_DIR="${DEPLOY_DIR:-/home/ludashi/Documents/rpi-wifi-fallback}"
+# 远程目标目录（支持 ~ 路径，由远程 shell 展开）
+REMOTE_DIR="${DEPLOY_DIR:-~/Documents/rpi-wifi-fallback}"
 
 # 排除的文件/文件夹列表
 EXCLUDES=(
@@ -68,7 +68,7 @@ done
 # --progress: 显示传输进度
 # 确保远程目录存在
 echo "📂 创建远程目录..."
-ssh "${REMOTE_HOST}" "mkdir -p '${REMOTE_DIR}'"
+ssh "${REMOTE_HOST}" "mkdir -p ${REMOTE_DIR}"
 
 echo "📤 正在传输文件..."
 rsync -avz --progress ${EXCLUDE_ARGS} "${PROJECT_DIR}/" "${REMOTE_HOST}:${REMOTE_DIR}/"
