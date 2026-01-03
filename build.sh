@@ -60,6 +60,31 @@ process_captive_portal_template() {
     echo "$content" | sed "s/{{AP_IP_ADDR}}/\$AP_IP_ADDR/g"
 }
 
+# 处理 app.py 模板（嵌入 wifi-connect.sh 脚本模板）
+process_app_py_template() {
+    local app_content
+    app_content=$(get_template_content "app.py")
+    
+    # 读取 wifi-connect.sh 模板内容
+    local script_content
+    script_content=$(get_template_content "wifi-connect.sh")
+    
+    # 将包含 @SCRIPT_TEMPLATE 标记的行替换为实际脚本内容
+    # 格式: WIFI_CONNECT_SCRIPT_TEMPLATE = '''# @SCRIPT_TEMPLATE: wifi-connect.sh
+    # 需要保留行首的变量定义部分
+    local line
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ "$line" == *"# @SCRIPT_TEMPLATE: wifi-connect.sh"* ]]; then
+            # 提取标记之前的部分（如 "WIFI_CONNECT_SCRIPT_TEMPLATE = '''"）
+            local prefix="${line%%# @SCRIPT_TEMPLATE:*}"
+            # 输出前缀 + 脚本内容
+            echo "${prefix}${script_content}"
+        else
+            echo "$line"
+        fi
+    done <<< "$app_content"
+}
+
 # 处理 @INCLUDE 指令
 # 将 lib 文件内容嵌入到主脚本
 process_includes() {
@@ -133,7 +158,7 @@ process_templates() {
                         output+=$'\n'
                         ;;
                     "app.py")
-                        output+=$(get_template_content "app.py")
+                        output+=$(process_app_py_template)
                         output+=$'\n'
                         ;;
                     *)
