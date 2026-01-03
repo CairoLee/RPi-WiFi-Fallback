@@ -2,12 +2,10 @@
 # ============================================
 # WiFi 连接脚本模板
 # ============================================
-# 变量替换说明：
-#   运行时替换（Python .replace()）：
-#     - SSID:     用户输入的 WiFi 名称
-#     - PASSWORD: 用户输入的 WiFi 密码
-#   安装时替换（sed）：
-#     - TARGET_AP: AP 热点连接名称（来自 config.sh）
+# 变量替换说明（全部运行时替换，Python .replace()）：
+#   - {{ssid}}:              用户输入的 WiFi 名称
+#   - {{password}}:          用户输入的 WiFi 密码
+#   - {{ap_connection_name}}: AP 热点连接名称（来自 config.py）
 # ============================================
 
 # 使用时间戳命名日志，保留历史记录
@@ -23,7 +21,7 @@ date >> $LOG
 
 SSID="{{ssid}}"
 PASSWORD="{{password}}"
-TARGET_AP="{{AP_CONNECTION_NAME}}"
+TARGET_AP="{{ap_connection_name}}"
 
 log "目标 SSID: $SSID"
 

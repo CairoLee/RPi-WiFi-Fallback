@@ -1,6 +1,8 @@
 from flask import Flask, request, render_template_string, redirect, make_response
 import subprocess
 
+from config import AP_CONNECTION_NAME
+
 app = Flask(__name__)
 
 # Captive Portal Detection 端点列表
@@ -20,11 +22,8 @@ CAPTIVE_PORTAL_PATHS = {
     'success.txt',
 }
 
-# 配置常量（安装时由 sed 替换）
-AP_CONNECTION_NAME = '{{AP_CONNECTION_NAME}}'
-
-# WiFi 连接脚本模板（构建时嵌入，安装时 sed 替换 AP_CONNECTION_NAME）
-# 运行时由 Python .replace() 替换 {{ssid}} 和 {{password}}
+# WiFi 连接脚本模板（构建时嵌入）
+# 运行时由 Python .replace() 替换所有 {{变量}}
 WIFI_CONNECT_SCRIPT_TEMPLATE = '''# @SCRIPT_TEMPLATE: wifi-connect.sh
 '''
 
@@ -245,7 +244,7 @@ def get_last_wifi_ssid():
             if len(parts) >= 3 and parts[1] == '802-11-wireless':
                 conn_name = parts[0]
                 # 排除 AP 热点连接（支持新旧名称）
-                if conn_name in ('{{AP_CONNECTION_NAME}}', 'MyHotspot'):
+                if conn_name in (AP_CONNECTION_NAME, 'MyHotspot'):
                     continue
                 try:
                     timestamp = int(parts[2]) if parts[2] else 0
@@ -274,10 +273,11 @@ def schedule_wifi_connect(ssid, password):
     import os
     
     # 从模板生成脚本（替换运行时变量）
-    # 注意：{{AP_CONNECTION_NAME}} 在安装时已被 sed 替换
+    # 所有占位符在运行时统一替换
     script_content = WIFI_CONNECT_SCRIPT_TEMPLATE \
         .replace('{{ssid}}', ssid) \
-        .replace('{{password}}', password)
+        .replace('{{password}}', password) \
+        .replace('{{ap_connection_name}}', AP_CONNECTION_NAME)
     
     # 写入临时脚本
     script_path = '/tmp/wifi-connect.sh'

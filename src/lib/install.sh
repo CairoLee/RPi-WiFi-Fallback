@@ -73,8 +73,14 @@ EOF
     cat > /opt/wifi-config/app.py << 'PYEOF'
 # @TEMPLATE: app.py
 PYEOF
-    # 替换 app.py 中的模板变量
-    sed -i "s/{{AP_CONNECTION_NAME}}/$AP_CONNECTION_NAME/g" /opt/wifi-config/app.py
+
+    # 生成运行时配置文件（用不带引号的 heredoc，变量自动展开）
+    echo "Creating /opt/wifi-config/config.py..."
+    cat > /opt/wifi-config/config.py << CONFIGEOF
+# 运行时配置（安装时生成）
+# 未来可通过环境变量覆盖默认配置
+AP_CONNECTION_NAME = "$AP_CONNECTION_NAME"
+CONFIGEOF
 
     # 创建 pyproject.toml
     echo "Creating /opt/wifi-config/pyproject.toml..."

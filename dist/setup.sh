@@ -220,6 +220,8 @@ EOF
 from flask import Flask, request, render_template_string, redirect, make_response
 import subprocess
 
+from config import AP_CONNECTION_NAME
+
 app = Flask(__name__)
 
 # Captive Portal Detection 端点列表
@@ -239,21 +241,16 @@ CAPTIVE_PORTAL_PATHS = {
     'success.txt',
 }
 
-# 配置常量（安装时由 sed 替换）
-AP_CONNECTION_NAME = '{{AP_CONNECTION_NAME}}'
-
-# WiFi 连接脚本模板（构建时嵌入，安装时 sed 替换 AP_CONNECTION_NAME）
-# 运行时由 Python .replace() 替换 {{ssid}} 和 {{password}}
+# WiFi 连接脚本模板（构建时嵌入）
+# 运行时由 Python .replace() 替换所有 {{变量}}
 WIFI_CONNECT_SCRIPT_TEMPLATE = '''#!/bin/bash
 # ============================================
 # WiFi 连接脚本模板
 # ============================================
-# 变量替换说明：
-#   运行时替换（Python .replace()）：
-#     - SSID:     用户输入的 WiFi 名称
-#     - PASSWORD: 用户输入的 WiFi 密码
-#   安装时替换（sed）：
-#     - TARGET_AP: AP 热点连接名称（来自 config.sh）
+# 变量替换说明（全部运行时替换，Python .replace()）：
+#   - {{ssid}}:              用户输入的 WiFi 名称
+#   - {{password}}:          用户输入的 WiFi 密码
+#   - {{ap_connection_name}}: AP 热点连接名称（来自 config.py）
 # ============================================
 
 # 使用时间戳命名日志，保留历史记录
@@ -269,7 +266,7 @@ date >> $LOG
 
 SSID="{{ssid}}"
 PASSWORD="{{password}}"
-TARGET_AP="{{AP_CONNECTION_NAME}}"
+TARGET_AP="{{ap_connection_name}}"
 
 log "目标 SSID: $SSID"
 
@@ -595,7 +592,7 @@ def get_last_wifi_ssid():
             if len(parts) >= 3 and parts[1] == '802-11-wireless':
                 conn_name = parts[0]
                 # 排除 AP 热点连接（支持新旧名称）
-                if conn_name in ('{{AP_CONNECTION_NAME}}', 'MyHotspot'):
+                if conn_name in (AP_CONNECTION_NAME, 'MyHotspot'):
                     continue
                 try:
                     timestamp = int(parts[2]) if parts[2] else 0
@@ -624,10 +621,11 @@ def schedule_wifi_connect(ssid, password):
     import os
     
     # 从模板生成脚本（替换运行时变量）
-    # 注意：{{AP_CONNECTION_NAME}} 在安装时已被 sed 替换
+    # 所有占位符在运行时统一替换
     script_content = WIFI_CONNECT_SCRIPT_TEMPLATE \
         .replace('{{ssid}}', ssid) \
-        .replace('{{password}}', password)
+        .replace('{{password}}', password) \
+        .replace('{{ap_connection_name}}', AP_CONNECTION_NAME)
     
     # 写入临时脚本
     script_path = '/tmp/wifi-connect.sh'
@@ -683,8 +681,14 @@ def home(path):
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
 PYEOF
-    # 替换 app.py 中的模板变量
-    sed -i "s/{{AP_CONNECTION_NAME}}/$AP_CONNECTION_NAME/g" /opt/wifi-config/app.py
+
+    # 生成运行时配置文件（用不带引号的 heredoc，变量自动展开）
+    echo "Creating /opt/wifi-config/config.py..."
+    cat > /opt/wifi-config/config.py << CONFIGEOF
+# 运行时配置（安装时生成）
+# 未来可通过环境变量覆盖默认配置
+AP_CONNECTION_NAME = "$AP_CONNECTION_NAME"
+CONFIGEOF
 
     # 创建 pyproject.toml
     echo "Creating /opt/wifi-config/pyproject.toml..."
