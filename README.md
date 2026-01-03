@@ -85,7 +85,30 @@ sudo ./setup.sh uninstall
 
 ## 配置说明
 
-安装前可编辑 `config.sh` 自定义 AP 热点参数：
+### 方式一：环境变量（推荐用于一键安装）
+
+通过环境变量自定义配置，无需修改文件：
+
+```bash
+# 一键安装时自定义配置
+curl -sSL https://raw.githubusercontent.com/CairoLee/RPi-WiFi-Fallback/main/dist/setup.sh | \
+  WIFI_AP_SSID="MyHome" \
+  WIFI_AP_PASSWORD="secret123" \
+  sudo -E bash -s install
+```
+
+支持的环境变量：
+
+| 环境变量 | 说明 | 默认值 |
+|----------|------|--------|
+| `WIFI_AP_SSID` | AP 热点名称 | `RPi-WiFi-Setup` |
+| `WIFI_AP_PASSWORD` | AP 热点密码（至少8个字符） | `raspberry2026` |
+| `WIFI_AP_CONNECTION_NAME` | NetworkManager 连接名称 | `RPi-WiFi-Setup-Hotspot` |
+| `WIFI_AP_IP` | AP IP 地址范围 | `192.168.4.1/24` |
+
+### 方式二：编辑配置文件
+
+克隆仓库后，安装前编辑 `config.sh`：
 
 ```bash
 AP_SSID="RPi-WiFi-Setup"                      # AP 热点 SSID
