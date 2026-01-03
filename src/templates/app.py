@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template_string, redirect, make_response
 import subprocess
 
-from config import AP_CONNECTION_NAME
+from config import WIFI_AP_CONNECTION_NAME
 
 app = Flask(__name__)
 
@@ -244,7 +244,7 @@ def get_last_wifi_ssid():
             if len(parts) >= 3 and parts[1] == '802-11-wireless':
                 conn_name = parts[0]
                 # 排除 AP 热点连接（支持新旧名称）
-                if conn_name in (AP_CONNECTION_NAME, 'MyHotspot'):
+                if conn_name in (WIFI_AP_CONNECTION_NAME, 'MyHotspot'):
                     continue
                 try:
                     timestamp = int(parts[2]) if parts[2] else 0
@@ -277,7 +277,7 @@ def schedule_wifi_connect(ssid, password):
     script_content = WIFI_CONNECT_SCRIPT_TEMPLATE \
         .replace('{{ssid}}', ssid) \
         .replace('{{password}}', password) \
-        .replace('{{ap_connection_name}}', AP_CONNECTION_NAME)
+        .replace('{{ap_connection_name}}', WIFI_AP_CONNECTION_NAME)
     
     # 写入临时脚本
     script_path = '/tmp/wifi-connect.sh'

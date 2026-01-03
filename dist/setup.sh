@@ -10,12 +10,11 @@
 # - 用法: sudo ./setup.sh install（安装）
 # -       sudo ./setup.sh uninstall（卸载）
 
-# 默认配置（支持通过环境变量覆盖）
-# 环境变量格式：WIFI_AP_SSID, WIFI_AP_PASSWORD, WIFI_AP_CONNECTION_NAME, WIFI_AP_IP
-AP_SSID="${WIFI_AP_SSID:-RPi-WiFi-Setup}"                        # AP 热点 SSID
-AP_PASSWORD="${WIFI_AP_PASSWORD:-raspberry2026}"                 # AP 热点密码（至少8个字符）
-AP_CONNECTION_NAME="${WIFI_AP_CONNECTION_NAME:-RPi-WiFi-Setup-Hotspot}"  # NetworkManager 连接名称
-AP_IP="${WIFI_AP_IP:-192.168.4.1/24}"                            # AP IP 地址范围
+# 配置变量（支持环境变量覆盖，未设置时使用默认值）
+: "${WIFI_AP_SSID:=RPi-WiFi-Setup}"                      # AP 热点 SSID
+: "${WIFI_AP_PASSWORD:=raspberry2026}"                   # AP 热点密码（至少8个字符）
+: "${WIFI_AP_CONNECTION_NAME:=RPi-WiFi-Setup-Hotspot}"   # NetworkManager 连接名称
+: "${WIFI_AP_IP:=192.168.4.1/24}"                        # AP IP 地址范围
 # 检测 WiFi 接口的函数
 detect_wifi_interface() {
     AP_INTERFACE=$(nmcli -t -f DEVICE,TYPE device | grep ':wifi' | cut -d: -f1 | head -n1)
@@ -35,7 +34,7 @@ install() {
     echo "Starting installation..."
 
     # 验证 AP 密码长度
-    if [ ${#AP_PASSWORD} -lt 8 ]; then
+    if [ ${#WIFI_AP_PASSWORD} -lt 8 ]; then
         echo "Error: AP password must be at least 8 characters."
         exit 1
     fi
@@ -78,13 +77,13 @@ install() {
     fi
 
     # 创建或重新创建 AP 连接
-    nmcli con show "$AP_CONNECTION_NAME" > /dev/null 2>&1
+    nmcli con show "$WIFI_AP_CONNECTION_NAME" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-        echo "Deleting existing $AP_CONNECTION_NAME connection..."
-        nmcli con delete "$AP_CONNECTION_NAME" || { echo "Failed to delete existing connection."; exit 1; }
+        echo "Deleting existing $WIFI_AP_CONNECTION_NAME connection..."
+        nmcli con delete "$WIFI_AP_CONNECTION_NAME" || { echo "Failed to delete existing connection."; exit 1; }
     fi
     echo "Creating AP connection..."
-    nmcli con add type wifi ifname "$AP_INTERFACE" con-name "$AP_CONNECTION_NAME" autoconnect no ssid "$AP_SSID" mode ap 802-11-wireless.band bg 802-11-wireless-security.key-mgmt wpa-psk 802-11-wireless-security.proto rsn 802-11-wireless-security.pairwise ccmp 802-11-wireless-security.group ccmp 802-11-wireless-security.psk "$AP_PASSWORD" ipv4.method shared ipv4.addresses "$AP_IP" || { echo "Failed to create AP connection."; exit 1; }
+    nmcli con add type wifi ifname "$AP_INTERFACE" con-name "$WIFI_AP_CONNECTION_NAME" autoconnect no ssid "$WIFI_AP_SSID" mode ap 802-11-wireless.band bg 802-11-wireless-security.key-mgmt wpa-psk 802-11-wireless-security.proto rsn 802-11-wireless-security.pairwise ccmp 802-11-wireless-security.group ccmp 802-11-wireless-security.psk "$WIFI_AP_PASSWORD" ipv4.method shared ipv4.addresses "$WIFI_AP_IP" || { echo "Failed to create AP connection."; exit 1; }
 
     # 创建回退脚本
     echo "Creating /usr/local/bin/wifi-fallback.sh..."
@@ -108,9 +107,9 @@ NFT_TABLE="captive_portal"
 if ip route | grep -q '^default'; then
     log "检测到默认网关，已连接外网"
     # 已连接到外部网络，如果 AP 处于活动状态则关闭
-    if nmcli con show --active | grep -q '$AP_CONNECTION_NAME'; then
+    if nmcli con show --active | grep -q '$WIFI_AP_CONNECTION_NAME'; then
         log "关闭 AP..."
-        nmcli con down '$AP_CONNECTION_NAME'
+        nmcli con down '$WIFI_AP_CONNECTION_NAME'
         systemctl stop wifi-config.service
         # 移除 nftables 规则（删除整个表）
         nft delete table ip \$NFT_TABLE 2>/dev/null
@@ -119,7 +118,7 @@ if ip route | grep -q '^default'; then
 fi
 
 # 检查 AP 是否已经在运行
-if nmcli con show --active | grep -q '$AP_CONNECTION_NAME'; then
+if nmcli con show --active | grep -q '$WIFI_AP_CONNECTION_NAME'; then
     log "AP 已在运行"
     
     # 确保 nftables 规则存在（可能被其他进程清除）
@@ -159,7 +158,7 @@ fi
 log "未检测到默认网关，启动 AP 模式"
 
 # 未连接到外部网络，启动 AP
-AP_RESULT=\$(nmcli con up '$AP_CONNECTION_NAME' 2>&1)
+AP_RESULT=\$(nmcli con up '$WIFI_AP_CONNECTION_NAME' 2>&1)
 log "AP 启动: \$AP_RESULT"
 
 # 先删除可能存在的旧表（防止重复）
@@ -221,7 +220,7 @@ EOF
 from flask import Flask, request, render_template_string, redirect, make_response
 import subprocess
 
-from config import AP_CONNECTION_NAME
+from config import WIFI_AP_CONNECTION_NAME
 
 app = Flask(__name__)
 
@@ -593,7 +592,7 @@ def get_last_wifi_ssid():
             if len(parts) >= 3 and parts[1] == '802-11-wireless':
                 conn_name = parts[0]
                 # 排除 AP 热点连接（支持新旧名称）
-                if conn_name in (AP_CONNECTION_NAME, 'MyHotspot'):
+                if conn_name in (WIFI_AP_CONNECTION_NAME, 'MyHotspot'):
                     continue
                 try:
                     timestamp = int(parts[2]) if parts[2] else 0
@@ -626,7 +625,7 @@ def schedule_wifi_connect(ssid, password):
     script_content = WIFI_CONNECT_SCRIPT_TEMPLATE \
         .replace('{{ssid}}', ssid) \
         .replace('{{password}}', password) \
-        .replace('{{ap_connection_name}}', AP_CONNECTION_NAME)
+        .replace('{{ap_connection_name}}', WIFI_AP_CONNECTION_NAME)
     
     # 写入临时脚本
     script_path = '/tmp/wifi-connect.sh'
@@ -687,8 +686,8 @@ PYEOF
     echo "Creating /opt/wifi-config/config.py..."
     cat > /opt/wifi-config/config.py << CONFIGEOF
 # 运行时配置（安装时生成）
-# 未来可通过环境变量覆盖默认配置
-AP_CONNECTION_NAME = "$AP_CONNECTION_NAME"
+# 支持通过环境变量覆盖默认配置
+WIFI_AP_CONNECTION_NAME = "$WIFI_AP_CONNECTION_NAME"
 CONFIGEOF
 
     # 创建 pyproject.toml
@@ -710,7 +709,7 @@ TOMLEOF
     uv sync
 
     # 提取 AP IP 地址（去掉 CIDR 后缀）
-    AP_IP_ADDR=${AP_IP%/*}
+    WIFI_AP_IP_ADDR=${WIFI_AP_IP%/*}
 
     # 创建 NetworkManager dnsmasq 共享配置（强制门户 DNS 劫持）
     # NetworkManager 在 shared 模式下会自动加载此配置
@@ -719,7 +718,7 @@ TOMLEOF
     cat > /etc/NetworkManager/dnsmasq-shared.d/captive-portal.conf << DNSEOF
 # 强制门户 DNS 劫持
 # 将所有域名解析到 AP IP，触发强制门户检测
-address=/#/$AP_IP_ADDR
+address=/#/$WIFI_AP_IP_ADDR
 DNSEOF
 
     # 创建 systemd 定时器
@@ -817,7 +816,7 @@ uninstall() {
     rm -rf /opt/wifi-config
 
     # 删除 AP 连接
-    nmcli con delete "$AP_CONNECTION_NAME" 2>/dev/null
+    nmcli con delete "$WIFI_AP_CONNECTION_NAME" 2>/dev/null
 
     # 移除 nftables 规则（删除整个表）
     nft delete table ip captive_portal 2>/dev/null

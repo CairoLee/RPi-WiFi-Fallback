@@ -26,7 +26,7 @@ uninstall() {
     rm -rf /opt/wifi-config
 
     # 删除 AP 连接
-    nmcli con delete "$AP_CONNECTION_NAME" 2>/dev/null
+    nmcli con delete "$WIFI_AP_CONNECTION_NAME" 2>/dev/null
 
     # 移除 nftables 规则（删除整个表）
     nft delete table ip captive_portal 2>/dev/null

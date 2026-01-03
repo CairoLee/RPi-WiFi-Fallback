@@ -92,7 +92,7 @@ sudo ./setup.sh uninstall
 ```bash
 # 一键安装时自定义配置
 curl -sSL https://raw.githubusercontent.com/CairoLee/RPi-WiFi-Fallback/main/dist/setup.sh | \
-  WIFI_AP_SSID="MyHome" \
+  WIFI_AP_SSID="Raspberry-Pi-WiFi" \
   WIFI_AP_PASSWORD="secret123" \
   sudo -E bash -s install
 ```
@@ -111,10 +111,10 @@ curl -sSL https://raw.githubusercontent.com/CairoLee/RPi-WiFi-Fallback/main/dist
 克隆仓库后，安装前编辑 `config.sh`：
 
 ```bash
-AP_SSID="RPi-WiFi-Setup"                      # AP 热点 SSID
-AP_PASSWORD="raspberry2026"                   # AP 热点密码（至少8个字符）
-AP_CONNECTION_NAME="RPi-WiFi-Setup-Hotspot"   # NetworkManager 连接名称
-AP_IP="192.168.4.1/24"                        # AP IP 地址范围
+WIFI_AP_SSID="RPi-WiFi-Setup"                      # AP 热点 SSID
+WIFI_AP_PASSWORD="raspberry2026"                   # AP 热点密码（至少8个字符）
+WIFI_AP_CONNECTION_NAME="RPi-WiFi-Setup-Hotspot"   # NetworkManager 连接名称
+WIFI_AP_IP="192.168.4.1/24"                        # AP IP 地址范围
 ```
 
 ## 开发指南

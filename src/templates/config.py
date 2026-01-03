@@ -8,5 +8,5 @@
 # ============================================
 
 # AP 热点连接名称（NetworkManager 中的连接标识）
-AP_CONNECTION_NAME = "RPi-WiFi-Setup-Hotspot"
+WIFI_AP_CONNECTION_NAME = "RPi-WiFi-Setup-Hotspot"
 

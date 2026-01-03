@@ -17,9 +17,9 @@ NFT_TABLE="captive_portal"
 if ip route | grep -q '^default'; then
     log "检测到默认网关，已连接外网"
     # 已连接到外部网络，如果 AP 处于活动状态则关闭
-    if nmcli con show --active | grep -q '{{AP_CONNECTION_NAME}}'; then
+    if nmcli con show --active | grep -q '{{WIFI_AP_CONNECTION_NAME}}'; then
         log "关闭 AP..."
-        nmcli con down '{{AP_CONNECTION_NAME}}'
+        nmcli con down '{{WIFI_AP_CONNECTION_NAME}}'
         systemctl stop wifi-config.service
         # 移除 nftables 规则（删除整个表）
         nft delete table ip \$NFT_TABLE 2>/dev/null
@@ -28,7 +28,7 @@ if ip route | grep -q '^default'; then
 fi
 
 # 检查 AP 是否已经在运行
-if nmcli con show --active | grep -q '{{AP_CONNECTION_NAME}}'; then
+if nmcli con show --active | grep -q '{{WIFI_AP_CONNECTION_NAME}}'; then
     log "AP 已在运行"
     
     # 确保 nftables 规则存在（可能被其他进程清除）
@@ -68,7 +68,7 @@ fi
 log "未检测到默认网关，启动 AP 模式"
 
 # 未连接到外部网络，启动 AP
-AP_RESULT=\$(nmcli con up '{{AP_CONNECTION_NAME}}' 2>&1)
+AP_RESULT=\$(nmcli con up '{{WIFI_AP_CONNECTION_NAME}}' 2>&1)
 log "AP 启动: \$AP_RESULT"
 
 # 先删除可能存在的旧表（防止重复）

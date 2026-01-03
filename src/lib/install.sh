@@ -3,7 +3,7 @@ install() {
     echo "Starting installation..."
 
     # 验证 AP 密码长度
-    if [ ${#AP_PASSWORD} -lt 8 ]; then
+    if [ ${#WIFI_AP_PASSWORD} -lt 8 ]; then
         echo "Error: AP password must be at least 8 characters."
         exit 1
     fi
@@ -46,13 +46,13 @@ install() {
     fi
 
     # 创建或重新创建 AP 连接
-    nmcli con show "$AP_CONNECTION_NAME" > /dev/null 2>&1
+    nmcli con show "$WIFI_AP_CONNECTION_NAME" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-        echo "Deleting existing $AP_CONNECTION_NAME connection..."
-        nmcli con delete "$AP_CONNECTION_NAME" || { echo "Failed to delete existing connection."; exit 1; }
+        echo "Deleting existing $WIFI_AP_CONNECTION_NAME connection..."
+        nmcli con delete "$WIFI_AP_CONNECTION_NAME" || { echo "Failed to delete existing connection."; exit 1; }
     fi
     echo "Creating AP connection..."
-    nmcli con add type wifi ifname "$AP_INTERFACE" con-name "$AP_CONNECTION_NAME" autoconnect no ssid "$AP_SSID" mode ap 802-11-wireless.band bg 802-11-wireless-security.key-mgmt wpa-psk 802-11-wireless-security.proto rsn 802-11-wireless-security.pairwise ccmp 802-11-wireless-security.group ccmp 802-11-wireless-security.psk "$AP_PASSWORD" ipv4.method shared ipv4.addresses "$AP_IP" || { echo "Failed to create AP connection."; exit 1; }
+    nmcli con add type wifi ifname "$AP_INTERFACE" con-name "$WIFI_AP_CONNECTION_NAME" autoconnect no ssid "$WIFI_AP_SSID" mode ap 802-11-wireless.band bg 802-11-wireless-security.key-mgmt wpa-psk 802-11-wireless-security.proto rsn 802-11-wireless-security.pairwise ccmp 802-11-wireless-security.group ccmp 802-11-wireless-security.psk "$WIFI_AP_PASSWORD" ipv4.method shared ipv4.addresses "$WIFI_AP_IP" || { echo "Failed to create AP connection."; exit 1; }
 
     # 创建回退脚本
     echo "Creating /usr/local/bin/wifi-fallback.sh..."
@@ -78,8 +78,8 @@ PYEOF
     echo "Creating /opt/wifi-config/config.py..."
     cat > /opt/wifi-config/config.py << CONFIGEOF
 # 运行时配置（安装时生成）
-# 未来可通过环境变量覆盖默认配置
-AP_CONNECTION_NAME = "$AP_CONNECTION_NAME"
+# 支持通过环境变量覆盖默认配置
+WIFI_AP_CONNECTION_NAME = "$WIFI_AP_CONNECTION_NAME"
 CONFIGEOF
 
     # 创建 pyproject.toml
@@ -94,7 +94,7 @@ TOMLEOF
     uv sync
 
     # 提取 AP IP 地址（去掉 CIDR 后缀）
-    AP_IP_ADDR=${AP_IP%/*}
+    WIFI_AP_IP_ADDR=${WIFI_AP_IP%/*}
 
     # 创建 NetworkManager dnsmasq 共享配置（强制门户 DNS 劫持）
     # NetworkManager 在 shared 模式下会自动加载此配置

@@ -44,10 +44,10 @@ process_wifi_fallback_template() {
     content=$(get_template_content "wifi-fallback.sh")
     
     # 替换占位符为 shell 变量引用
-    # {{AP_CONNECTION_NAME}} -> $AP_CONNECTION_NAME (在单引号内)
-    # {{AP_INTERFACE}} -> $AP_INTERFACE (在双引号内)
+    # {{WIFI_AP_CONNECTION_NAME}} -> $WIFI_AP_CONNECTION_NAME (在单引号内)
+    # {{AP_INTERFACE}} -> $AP_INTERFACE (内部检测变量，保持不变)
     echo "$content" | \
-        sed "s/{{AP_CONNECTION_NAME}}/\$AP_CONNECTION_NAME/g" | \
+        sed "s/{{WIFI_AP_CONNECTION_NAME}}/\$WIFI_AP_CONNECTION_NAME/g" | \
         sed "s/{{AP_INTERFACE}}/\$AP_INTERFACE/g"
 }
 
@@ -56,8 +56,8 @@ process_captive_portal_template() {
     local content
     content=$(get_template_content "captive-portal.conf")
     
-    # {{AP_IP_ADDR}} -> $AP_IP_ADDR
-    echo "$content" | sed "s/{{AP_IP_ADDR}}/\$AP_IP_ADDR/g"
+    # {{WIFI_AP_IP_ADDR}} -> $WIFI_AP_IP_ADDR
+    echo "$content" | sed "s/{{WIFI_AP_IP_ADDR}}/\$WIFI_AP_IP_ADDR/g"
 }
 
 # 处理 app.py 模板（嵌入 wifi-connect.sh 脚本模板）
