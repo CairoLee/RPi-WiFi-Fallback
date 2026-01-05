@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 树莓派 Zero 2 W 的 WiFi 回退设置脚本，适用于 Raspberry Pi OS 64位版（Debian Trixie）
+# 树莓派 WiFi 回退设置脚本，适用于 Raspberry Pi OS 64 位版（Debian Bookworm/Trixie）
 # 此脚本用于安装或卸载 WiFi 回退机制：
 # - 检查 WiFi 连接；如果连接失败，则启动 AP 热点。
 # - 允许通过 AP 上的 Web 界面配置 WiFi SSID/密码。
@@ -834,16 +834,20 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 检查操作系统版本（同时检查 debian_version 和 os-release）
-is_trixie=false
-if grep -qi "trixie" /etc/debian_version 2>/dev/null; then
-    is_trixie=true
-elif grep -qi "VERSION_CODENAME=trixie" /etc/os-release 2>/dev/null; then
-    is_trixie=true
-fi
+# 检查操作系统版本（支持 Bookworm 和 Trixie）
+is_supported=false
+for codename in bookworm trixie; do
+    if grep -qi "$codename" /etc/debian_version 2>/dev/null; then
+        is_supported=true
+        break
+    elif grep -qi "VERSION_CODENAME=$codename" /etc/os-release 2>/dev/null; then
+        is_supported=true
+        break
+    fi
+done
 
-if [ "$is_trixie" = false ]; then
-    echo "This script is designed for Debian Trixie (Raspberry Pi OS 64-bit). Aborting."
+if [ "$is_supported" = false ]; then
+    echo "This script is designed for Debian Bookworm/Trixie (Raspberry Pi OS 64-bit). Aborting."
     exit 1
 fi
 

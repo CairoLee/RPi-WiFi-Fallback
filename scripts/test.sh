@@ -73,18 +73,25 @@ if [ -f /etc/os-release ]; then
     cat /etc/os-release | sed 's/^/    /'
 fi
 
-# 检查是否为 Trixie（同时检查 debian_version 和 os-release）
-is_trixie=false
-if echo "$DEBIAN_VERSION" | grep -qi "trixie"; then
-    is_trixie=true
-elif grep -qi "VERSION_CODENAME=trixie" /etc/os-release 2>/dev/null; then
-    is_trixie=true
-fi
+# 检查是否为支持的 Debian 版本（Bookworm 或 Trixie）
+is_supported=false
+detected_codename=""
+for codename in bookworm trixie; do
+    if echo "$DEBIAN_VERSION" | grep -qi "$codename"; then
+        is_supported=true
+        detected_codename="$codename"
+        break
+    elif grep -qi "VERSION_CODENAME=$codename" /etc/os-release 2>/dev/null; then
+        is_supported=true
+        detected_codename="$codename"
+        break
+    fi
+done
 
-if [ "$is_trixie" = true ]; then
-    print_pass "检测到 Debian Trixie"
+if [ "$is_supported" = true ]; then
+    print_pass "检测到支持的 Debian 版本: $detected_codename"
 else
-    print_fail "未检测到 Debian Trixie"
+    print_fail "未检测到支持的 Debian 版本 (需要 Bookworm 或 Trixie)"
 fi
 
 print_subheader "内核版本"
@@ -110,10 +117,25 @@ print_header "2. 命令可用性检查"
 check_command() {
     local cmd=$1
     local required=$2
+    local fallback_paths=$3  # 可选：备用路径列表，用冒号分隔
     
     if command -v "$cmd" &> /dev/null; then
         local path=$(command -v "$cmd")
         print_pass "$cmd 可用 ($path)"
+    elif [ -n "$fallback_paths" ]; then
+        # 检查备用路径
+        IFS=':' read -ra paths <<< "$fallback_paths"
+        for path in "${paths[@]}"; do
+            if [ -x "$path" ]; then
+                print_pass "$cmd 可用 ($path) [不在 PATH 中，但 root 可用]"
+                return
+            fi
+        done
+        if [ "$required" = "required" ]; then
+            print_fail "$cmd 不可用 (必需)"
+        else
+            print_warn "$cmd 不可用 (可选)"
+        fi
     else
         if [ "$required" = "required" ]; then
             print_fail "$cmd 不可用 (必需)"
@@ -130,7 +152,7 @@ check_command "systemctl" "required"
 check_command "dpkg" "required"
 
 print_subheader "网络命令"
-check_command "nft" "required"
+check_command "nft" "required" "/usr/sbin/nft:/sbin/nft"
 check_command "ip" "required"
 
 print_subheader "Python"
@@ -326,8 +348,18 @@ ip route 2>/dev/null | sed 's/^/    /'
 print_header "8. nftables 状态"
 
 print_subheader "当前规则集"
+# 查找 nft 命令（可能在 /usr/sbin 中，普通用户 PATH 不包含）
+NFT_CMD=""
 if command -v nft &>/dev/null; then
-    NFT_RULES=$(nft list ruleset 2>/dev/null)
+    NFT_CMD="nft"
+elif [ -x /usr/sbin/nft ]; then
+    NFT_CMD="/usr/sbin/nft"
+elif [ -x /sbin/nft ]; then
+    NFT_CMD="/sbin/nft"
+fi
+
+if [ -n "$NFT_CMD" ]; then
+    NFT_RULES=$($NFT_CMD list ruleset 2>/dev/null)
     if [ -n "$NFT_RULES" ]; then
         echo "  nftables 规则:"
         echo "$NFT_RULES" | sed 's/^/    /'
@@ -336,7 +368,7 @@ if command -v nft &>/dev/null; then
     fi
     
     # 检查是否存在 captive_portal 表
-    if nft list table ip captive_portal &>/dev/null 2>&1; then
+    if $NFT_CMD list table ip captive_portal &>/dev/null 2>&1; then
         print_warn "captive_portal 表已存在 (可能是之前的安装)"
     else
         print_info "captive_portal 表不存在 (正常)"

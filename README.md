@@ -12,11 +12,31 @@
 
 ## 适用环境
 
-| 要求 | 说明 |
+### 兼容系统
+
+| 系统 | 版本 | 状态 |
+|------|------|------|
+| Raspberry Pi OS | 64-bit (Debian Bookworm) | ✅ 已测试 |
+| Raspberry Pi OS | 64-bit (Debian Trixie) | ✅ 已测试 |
+
+### 兼容硬件
+
+| 硬件 | 架构 | 状态 |
+|------|------|------|
+| Raspberry Pi Zero 2 W | aarch64 (64-bit ARM) | ✅ 已测试 |
+| Raspberry Pi 3B/3B+ | aarch64 (64-bit ARM) | ✅ 兼容 |
+| Raspberry Pi 4B | aarch64 (64-bit ARM) | ✅ 兼容 |
+| Raspberry Pi 5 | aarch64 (64-bit ARM) | ✅ 兼容 |
+
+> **注意**：需要带有 WiFi 功能的树莓派，且必须运行 64 位系统。
+
+### 依赖要求
+
+| 依赖 | 说明 |
 |------|------|
-| 硬件 | Raspberry Pi Zero 2 W（或其他带 WiFi 的树莓派） |
-| 系统 | Raspberry Pi OS 64-bit（Debian Trixie） |
-| 网络管理 | NetworkManager |
+| NetworkManager | 网络管理服务（系统通常已预装） |
+| nftables | 防火墙框架（Bookworm/Trixie 默认） |
+| Python 3.11+ | 运行 Web 配置界面 |
 
 ## 快速开始
 
