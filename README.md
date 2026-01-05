@@ -68,7 +68,7 @@ sudo ./setup.sh uninstall
 ## 工作原理
 
 <p align="center">
-  <img src=".github/images/wifi-fallback-workflow.png" alt="WiFi 回退机制工作流程" width="600">
+  <img src=".github/images/wifi-fallback-workflow.png?v=2" alt="WiFi 回退机制工作流程" width="600">
 </p>
 
 <details>
