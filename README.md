@@ -1,6 +1,33 @@
-# RPi-WiFi-Fallback
+<p align="center">
+  <img src=".github/images/banner.svg" alt="RPi-WiFi-Fallback Banner" width="800">
+</p>
 
-树莓派 WiFi 回退机制：当 WiFi 连接失败时自动启动 AP 热点，通过 Web 界面配置新的 WiFi 网络。
+<h1 align="center">RPi-WiFi-Fallback</h1>
+
+<p align="center">
+  <strong>树莓派 WiFi 回退机制</strong><br>
+  断网时自动启动 AP 热点 + 强制门户，无需显示器即可配置 WiFi
+</p>
+
+<p align="center">
+  <a href="#快速开始">快速开始</a> •
+  <a href="#功能特性">功能特性</a> •
+  <a href="#配置说明">配置说明</a> •
+  <a href="#常见问题">常见问题</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Raspberry%20Pi-c51a4a?style=flat-square&logo=raspberrypi" alt="Platform">
+  <img src="https://img.shields.io/badge/OS-Bookworm%20|%20Trixie-blue?style=flat-square" alt="OS">
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/Python-3.11+-yellow?style=flat-square&logo=python&logoColor=white" alt="Python">
+</p>
+
+<p align="center">
+  <strong>简体中文</strong> | <a href="README_EN.md">English</a>
+</p>
+
+---
 
 ## 功能特性
 
@@ -200,4 +227,3 @@ cat /tmp/wifi-fallback.log
 
 - [提交问题](https://github.com/CairoLee/RPi-WiFi-Fallback/issues)
 - [贡献代码](https://github.com/CairoLee/RPi-WiFi-Fallback/pulls)
-
