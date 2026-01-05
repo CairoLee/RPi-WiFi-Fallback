@@ -23,8 +23,9 @@
 
 | 硬件 | 架构 | 状态 |
 |------|------|------|
-| Raspberry Pi Zero 2 W | aarch64 (64-bit ARM) | ✅ 已测试 |
-| Raspberry Pi 3B/3B+ | aarch64 (64-bit ARM) | ✅ 兼容 |
+| Raspberry Pi Zero W / WH | aarch64 (64-bit ARM) | ✅ 已测试 |
+| Raspberry Pi Zero 2 W / WH | aarch64 (64-bit ARM) | ✅ 已测试 |
+| Raspberry Pi 3B / 3B+ | aarch64 (64-bit ARM) | ✅ 兼容 |
 | Raspberry Pi 4B | aarch64 (64-bit ARM) | ✅ 兼容 |
 | Raspberry Pi 5 | aarch64 (64-bit ARM) | ✅ 兼容 |
 
