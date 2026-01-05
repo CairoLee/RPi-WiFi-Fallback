@@ -144,7 +144,7 @@ EOF
     fi
     systemctl stop wifi-config.service
 
-    echo "WiFi fallback timer is now active and will check connectivity every 30 seconds."
+    echo "WiFi fallback timer is now active and will check connectivity every 15 seconds."
     echo "Installation complete."
 }
 
