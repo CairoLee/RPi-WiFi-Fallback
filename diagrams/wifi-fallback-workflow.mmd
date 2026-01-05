@@ -4,52 +4,48 @@
     'primaryColor': '#4a90d9',
     'primaryTextColor': '#ffffff',
     'primaryBorderColor': '#3a7bc8',
-    'lineColor': '#5c6370',
+    'lineColor': '#6b7280',
     'secondaryColor': '#98c379',
     'tertiaryColor': '#e5c07b',
-    'background': '#282c34',
-    'mainBkg': '#282c34',
+    'background': '#1e2228',
+    'mainBkg': '#1e2228',
     'nodeBorder': '#528bff',
-    'clusterBkg': '#3e4451',
-    'titleColor': '#abb2bf',
-    'edgeLabelBackground': '#282c34'
+    'clusterBkg': '#2d333b',
+    'titleColor': '#e6edf3',
+    'edgeLabelBackground': '#1e2228'
+  },
+  'flowchart': {
+    'nodeSpacing': 30,
+    'rankSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
-flowchart TB
-    subgraph timer["⏱️ systemd 定时器"]
-        T[每 15 秒触发]
+flowchart LR
+    subgraph timer["⏱️ 定时器"]
+        T["每15秒"]
     end
 
-    T --> CHECK
+    T --> CHECK["🔍 网络检测"]
 
-    CHECK["🔍 检查网络连接<br/>(默认网关检测)"]
+    CHECK --> |"✓ 已连接"| OK["✅ 无操作"]
+    CHECK --> |"✗ 未连接"| AP["📡 启动AP"]
 
-    CHECK --> CONNECTED
-    CHECK --> DISCONNECTED
+    AP --> WEB["🌐 Web服务"]
+    WEB --> CONFIG["📱 配置WiFi"]
+    CONFIG --> RESTORE["🔄 连接新WiFi"]
 
-    CONNECTED["✅ 已连接外网<br/>→ 无操作"]
-
-    DISCONNECTED["❌ 未连接外网<br/>→ 启动 AP"]
-
-    DISCONNECTED --> WEB["🌐 启动 Web 服务<br/>(强制门户)"]
-
-    WEB --> CONFIG["📱 用户配置 WiFi"]
-
-    CONFIG --> RESTORE["🔄 关闭 AP 热点<br/>连接新 WiFi"]
-
-    RESTORE -.-> CHECK
+    RESTORE -.-> |"循环检测"| CHECK
 
     %% 样式定义
-    classDef timerStyle fill:#61afef,stroke:#528bff,stroke-width:2px,color:#282c34
-    classDef checkStyle fill:#e5c07b,stroke:#d19a66,stroke-width:2px,color:#282c34
-    classDef successStyle fill:#98c379,stroke:#7cb668,stroke-width:2px,color:#282c34
-    classDef failStyle fill:#e06c75,stroke:#be5046,stroke-width:2px,color:#ffffff
-    classDef actionStyle fill:#c678dd,stroke:#a855d9,stroke-width:2px,color:#282c34
+    classDef timerStyle fill:#61afef,stroke:#4a8fd9,stroke-width:2px,color:#1e2228,font-weight:bold
+    classDef checkStyle fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#1e2228,font-weight:bold
+    classDef successStyle fill:#22c55e,stroke:#16a34a,stroke-width:2px,color:#1e2228,font-weight:bold
+    classDef failStyle fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#ffffff,font-weight:bold
+    classDef actionStyle fill:#a855f7,stroke:#9333ea,stroke-width:2px,color:#ffffff,font-weight:bold
 
     class T timerStyle
     class CHECK checkStyle
-    class CONNECTED successStyle
-    class DISCONNECTED failStyle
+    class OK successStyle
+    class AP failStyle
     class WEB,CONFIG,RESTORE actionStyle
-

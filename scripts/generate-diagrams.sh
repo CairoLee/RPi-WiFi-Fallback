@@ -74,10 +74,9 @@ generate_diagram() {
     log_info "生成图表: $filename.mmd -> $filename.png"
 
     # 使用 Mermaid CLI 生成 PNG 图片
-    # -b transparent: 透明背景
+    # -b '#1e2228': 深色背景
     # -s 2: 缩放比例，提高清晰度
-    # -w 800: 最大宽度
-    if $MMDC_CMD -i "$input_file" -o "$output_file" -b transparent -s 2 -w 800 2>/dev/null; then
+    if $MMDC_CMD -i "$input_file" -o "$output_file" -b '#1e2228' -s 2 2>/dev/null; then
         log_info "✓ 已生成: $output_file"
     else
         log_error "✗ 生成失败: $input_file"
