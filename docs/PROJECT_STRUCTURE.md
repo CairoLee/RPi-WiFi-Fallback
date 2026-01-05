@@ -26,7 +26,13 @@ rpi-wifi-fallback/
 ├── scripts/                       # 运维脚本
 │   ├── deploy.sh                  # 部署脚本：同步到树莓派
 │   ├── test.sh                    # 测试脚本
+│   ├── generate-diagrams.sh       # 流程图生成脚本（Mermaid → PNG）
 │   └── clean-known-hosts.sh       # SSH known_hosts 清理工具
+├── diagrams/                      # 流程图源文件目录
+│   └── wifi-fallback-workflow.mmd # WiFi 回退流程图（Mermaid 语法）
+├── .github/                       # GitHub 相关资源
+│   └── images/                    # README 引用的图片
+│       └── wifi-fallback-workflow.png
 ├── dist/                          # 构建输出目录
 │   └── setup.sh                   # 构建生成的单文件（用于部署）
 ├── docs/                          # 文档目录
@@ -108,7 +114,16 @@ src/templates/* ┘（嵌入到 heredoc 中）
 |------|------|
 | `deploy.sh` | 使用 rsync 同步到树莓派（自动先构建） |
 | `test.sh` | 远程测试脚本 |
+| `generate-diagrams.sh` | 将 Mermaid 流程图转换为 PNG 图片 |
 | `clean-known-hosts.sh` | 清理 SSH known_hosts 中的旧条目 |
+
+### `diagrams/` - 流程图源文件
+
+| 文件 | 说明 |
+|------|------|
+| `wifi-fallback-workflow.mmd` | WiFi 回退机制工作流程图（Mermaid 语法） |
+
+流程图使用 [Mermaid](https://mermaid.js.org/) 语法编写，运行 `./scripts/generate-diagrams.sh` 生成 PNG 图片到 `.github/images/` 目录。
 
 ---
 

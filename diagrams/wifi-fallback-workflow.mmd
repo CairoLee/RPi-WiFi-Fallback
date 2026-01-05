@@ -1,0 +1,55 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#4a90d9',
+    'primaryTextColor': '#ffffff',
+    'primaryBorderColor': '#3a7bc8',
+    'lineColor': '#5c6370',
+    'secondaryColor': '#98c379',
+    'tertiaryColor': '#e5c07b',
+    'background': '#282c34',
+    'mainBkg': '#282c34',
+    'nodeBorder': '#528bff',
+    'clusterBkg': '#3e4451',
+    'titleColor': '#abb2bf',
+    'edgeLabelBackground': '#282c34'
+  }
+}}%%
+
+flowchart TB
+    subgraph timer["⏱️ systemd 定时器"]
+        T[每 15 秒触发]
+    end
+
+    T --> CHECK
+
+    CHECK["🔍 检查网络连接<br/>(默认网关检测)"]
+
+    CHECK --> CONNECTED
+    CHECK --> DISCONNECTED
+
+    CONNECTED["✅ 已连接外网<br/>→ 无操作"]
+
+    DISCONNECTED["❌ 未连接外网<br/>→ 启动 AP"]
+
+    DISCONNECTED --> WEB["🌐 启动 Web 服务<br/>(强制门户)"]
+
+    WEB --> CONFIG["📱 用户配置 WiFi"]
+
+    CONFIG --> RESTORE["🔄 关闭 AP 热点<br/>连接新 WiFi"]
+
+    RESTORE -.-> CHECK
+
+    %% 样式定义
+    classDef timerStyle fill:#61afef,stroke:#528bff,stroke-width:2px,color:#282c34
+    classDef checkStyle fill:#e5c07b,stroke:#d19a66,stroke-width:2px,color:#282c34
+    classDef successStyle fill:#98c379,stroke:#7cb668,stroke-width:2px,color:#282c34
+    classDef failStyle fill:#e06c75,stroke:#be5046,stroke-width:2px,color:#ffffff
+    classDef actionStyle fill:#c678dd,stroke:#a855d9,stroke-width:2px,color:#282c34
+
+    class T timerStyle
+    class CHECK checkStyle
+    class CONNECTED successStyle
+    class DISCONNECTED failStyle
+    class WEB,CONFIG,RESTORE actionStyle
+
