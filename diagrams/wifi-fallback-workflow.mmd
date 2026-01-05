@@ -11,6 +11,7 @@
     'mainBkg': '#1e2228',
     'nodeBorder': '#528bff',
     'clusterBkg': '#2d333b',
+    'clusterBorder': '#444c56',
     'titleColor': '#e6edf3',
     'edgeLabelBackground': '#1e2228'
   },
@@ -37,12 +38,12 @@ flowchart LR
 
     RESTORE -.-> |"循环检测"| CHECK
 
-    %% 样式定义
-    classDef timerStyle fill:#61afef,stroke:#4a8fd9,stroke-width:2px,color:#1e2228,font-weight:bold
-    classDef checkStyle fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#1e2228,font-weight:bold
-    classDef successStyle fill:#22c55e,stroke:#16a34a,stroke-width:2px,color:#1e2228,font-weight:bold
-    classDef failStyle fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#ffffff,font-weight:bold
-    classDef actionStyle fill:#a855f7,stroke:#9333ea,stroke-width:2px,color:#ffffff,font-weight:bold
+    %% 样式定义 - 使用高对比度颜色，确保在亮暗模式下都清晰
+    classDef timerStyle fill:#3b82f6,stroke:#1d4ed8,stroke-width:1px,color:#ffffff
+    classDef checkStyle fill:#f59e0b,stroke:#b45309,stroke-width:1px,color:#1c1917
+    classDef successStyle fill:#22c55e,stroke:#15803d,stroke-width:1px,color:#1c1917
+    classDef failStyle fill:#ef4444,stroke:#b91c1c,stroke-width:1px,color:#ffffff
+    classDef actionStyle fill:#a855f7,stroke:#7c3aed,stroke-width:1px,color:#ffffff
 
     class T timerStyle
     class CHECK checkStyle
